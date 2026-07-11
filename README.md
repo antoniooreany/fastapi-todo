@@ -7,6 +7,7 @@ A simple Todo API built with FastAPI and persistent task storage using SQLite an
 - Create, read, update, and delete todo items.
 - Automatic interactive API documentation with Swagger UI.
 - Persistent storage with SQLite.
+- Automated API tests with an isolated test database.
 - Lightweight setup for local development.
 
 ## Tech Stack
@@ -15,6 +16,7 @@ A simple Todo API built with FastAPI and persistent task storage using SQLite an
 - Uvicorn
 - SQLAlchemy
 - SQLite
+- Pytest
 
 ## Project Structure
 
@@ -24,8 +26,7 @@ fastapi-todo/
 ├── requirements.txt
 ├── README.md
 ├── test_main.py
-├── todo.db
-└── venv/
+└── .gitignore
 ```
 
 ## Getting Started
@@ -69,7 +70,7 @@ The API will be available at:
 
 ## Database
 
-This project uses SQLite as the database backend.
+This project uses SQLite as the main database backend.
 
 By default, the database file is created in the project root:
 
@@ -83,6 +84,7 @@ If the database or tables do not exist yet, they are created automatically when 
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/` | Health-check style root endpoint |
 | GET | `/todos` | Return all todo items |
 | GET | `/todos/{id}` | Return a single todo item by ID |
 | POST | `/todos` | Create a new todo item |
@@ -97,6 +99,8 @@ Run tests with:
 .\venv\Scripts\python.exe -m pytest
 ```
 
+The test suite uses a separate in-memory SQLite database with FastAPI dependency overrides, so tests do not write into the main `todo.db` file.
+
 ## Example workflow
 
 1. Start the server.
@@ -107,25 +111,28 @@ Run tests with:
 
 ## Git workflow
 
-This feature is developed in a dedicated feature branch:
+This project follows a feature-branch workflow.
+
+Example:
 
 ```bash
 git checkout develop
-git checkout -b feature/todo-database
+git pull origin develop
+git checkout -b feature/test-database
 ```
 
 After implementation and testing:
 
 ```bash
-git add main.py test_main.py README.md requirements.txt
-git commit -m "feat: persist todos with SQLite and SQLAlchemy"
-git push -u origin feature/todo-database
+git add test_main.py README.md
+git commit -m "test: isolate database tests with in-memory SQLite"
+git push -u origin feature/test-database
 ```
 
-Then open a Pull Request from `feature/todo-database` into `develop`.
+Then open a Pull Request from `feature/test-database` into `develop`.
 
 ## Notes
 
 - Make sure dependencies are installed inside the local virtual environment.
 - Avoid generating `requirements.txt` from a global Python installation.
-- The `todo.db` file may be excluded from version control depending on project rules.
+- The main application uses `todo.db`, while tests use a separate in-memory SQLite database.
