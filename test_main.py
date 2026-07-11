@@ -15,7 +15,7 @@ def create_sample_todo(
         "is_done": is_done,
     }
     response = client.post("/todos", json=payload)
-    assert response.status_code in (200, 201)
+    assert response.status_code == 201
     return response.json()
 
 
@@ -28,7 +28,7 @@ def test_create_todo():
 
     response = client.post("/todos", json=payload)
 
-    assert response.status_code in (200, 201)
+    assert response.status_code == 201
     data = response.json()
     assert data["title"] == payload["title"]
     assert data["description"] == payload["description"]
@@ -81,7 +81,7 @@ def test_delete_todo():
     created = create_sample_todo(title="Delete todo")
 
     delete_response = client.delete(f"/todos/{created['id']}")
-    assert delete_response.status_code in (200, 204)
+    assert delete_response.status_code == 200
 
     get_response = client.get(f"/todos/{created['id']}")
     assert get_response.status_code == 404

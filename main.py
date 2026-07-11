@@ -1,13 +1,11 @@
 from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
-
 app = FastAPI()
-
 
 DATABASE_URL = "sqlite:///./todo.db"
 
@@ -15,6 +13,7 @@ engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False}
 )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -32,22 +31,21 @@ class TodoDB(Base):
 Base.metadata.create_all(bind=engine)
 
 
-class TodoCreate(BaseModel):
+class TodoBase(BaseModel):
     title: str
     description: Optional[str] = None
     is_done: bool = False
     due_date: Optional[str] = None
 
 
-class TodoRead(BaseModel):
+class TodoCreate(TodoBase):
+    pass
+
+
+class TodoRead(TodoBase):
     id: int
-    title: str
-    description: Optional[str] = None
-    is_done: bool = False
-    due_date: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 def get_db():
@@ -77,7 +75,7 @@ def get_todo(todo_id: int, db: Session = Depends(get_db)):
     return todo
 
 
-@app.post("/todos", response_model=TodoRead)
+@app.post("/todos", response_model=TodoRead, status_code=201)
 def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
     new_todo = TodoDB(
         title=todo.title,
@@ -115,5 +113,4 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db)):
 
     db.delete(todo)
     db.commit()
-
     return {"message": "Todo deleted", "todo": {"id": todo_id}}
