@@ -1,36 +1,40 @@
-# fastapi-todo
+# FastAPI Todo API
 
-A simple Todo API built with FastAPI and persistent task storage using SQLite and SQLAlchemy.
+A simple Todo API built with FastAPI and SQLite.
 
-## Features
-
-- Create, read, update, and delete todo items.
-- Filter todos by completion status (`GET /todos?is_done=true/false`).
-- Automatic interactive API documentation with Swagger UI.
-- Persistent storage with SQLite.
-- Automated API tests with an isolated test database.
-- Lightweight setup for local development.
+This project provides a small REST API for managing todo items.  
+It supports creating, reading, updating, deleting, filtering, and validating todos.
 
 ## Tech Stack
 
+- Python
 - FastAPI
-- Uvicorn
-- SQLAlchemy
 - SQLite
+- Pydantic
+- SQLAlchemy
 - Pytest
+
+## Features
+
+- Create, read, update, and delete todo items
+- Filter todos by status with `is_done=true/false`
+- Validate request data with Pydantic
+- Interactive API docs with Swagger UI
+- SQLite database for persistent storage
+- Automated tests with Pytest
 
 ## Project Structure
 
 ```bash
 fastapi-todo/
 ├── main.py
+├── test_main.py
 ├── requirements.txt
 ├── README.md
-├── test_main.py
-└── .gitignore
+└── todo.db
 ```
 
-## Getting Started
+## Installation
 
 ### 1. Clone the repository
 
@@ -55,9 +59,7 @@ python -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Running the application
-
-Start the development server with:
+## Run the server
 
 ```powershell
 .\venv\Scripts\python.exe -m uvicorn main:app --reload
@@ -69,89 +71,87 @@ The API will be available at:
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
 
-## Database
-
-This project uses SQLite as the main database backend.
-
-By default, the database file is created in the project root:
-
-```python
-sqlite:///./todo.db
-```
-
-If the database or tables do not exist yet, they are created automatically when the application starts.
+FastAPI automatically generates interactive API documentation at `/docs`.
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Health-check style root endpoint |
-| GET | `/todos` | Return all todo items, optionally filtered by `is_done` |
-| GET | `/todos/{id}` | Return a single todo item by ID |
-| POST | `/todos` | Create a new todo item |
-| PUT | `/todos/{id}` | Update an existing todo item |
-| DELETE | `/todos/{id}` | Delete a todo item |
+| GET | `/` | Root endpoint |
+| GET | `/todos` | Get all todos |
+| GET | `/todos/{id}` | Get a todo by ID |
+| POST | `/todos` | Create a todo |
+| PUT | `/todos/{id}` | Update a todo |
+| DELETE | `/todos/{id}` | Delete a todo |
 
-### Query parameters
+## Query Parameters
 
-- `GET /todos?is_done=true` — returns only completed todos.
-- `GET /todos?is_done=false` — returns only pending todos.
-- `GET /todos` — without `is_done` returns all todos.[web:828][web:831]
+`GET /todos` supports an optional query parameter:
 
-## Data validation
+- `is_done=true` — return only completed todos
+- `is_done=false` — return only pending todos
 
-Request body for creating and updating todos is validated using Pydantic and FastAPI:
+## Request Validation
 
-- `title` is required, 1–100 characters.
-- `description` is optional, up to 300 characters.
-- `is_done` is a boolean.
-- `due_date` is an optional date in `YYYY-MM-DD` format.[web:826][web:835]
+Todo items are validated with Pydantic:
 
-Invalid data returns a `422 Unprocessable Entity` response with details.[web:814]
+- `title` is required
+- `title` max length: 100 characters
+- `description` max length: 300 characters
+- `due_date` must be in `YYYY-MM-DD` format
 
-## Running tests
+Invalid input returns `422 Unprocessable Entity`.
 
-Run tests with:
+## Example Requests
+
+### Create a todo
+
+```bash
+curl -X POST "http://127.0.0.1:8000/todos" \
+  -H "Content-Type: application/json" \
+  -d "{\"title\":\"Learn FastAPI\",\"description\":\"Build a Todo API\",\"is_done\":false,\"due_date\":null}"
+```
+
+### Get all todos
+
+```bash
+curl "http://127.0.0.1:8000/todos"
+```
+
+### Get completed todos
+
+```bash
+curl "http://127.0.0.1:8000/todos?is_done=true"
+```
+
+### Get pending todos
+
+```bash
+curl "http://127.0.0.1:8000/todos?is_done=false"
+```
+
+### Update a todo
+
+```bash
+curl -X PUT "http://127.0.0.1:8000/todos/1" \
+  -H "Content-Type: application/json" \
+  -d "{\"title\":\"Learn FastAPI\",\"description\":\"Updated task\",\"is_done\":true,\"due_date\":\"2026-07-20\"}"
+```
+
+### Delete a todo
+
+```bash
+curl -X DELETE "http://127.0.0.1:8000/todos/1"
+```
+
+## Run tests
 
 ```powershell
 .\venv\Scripts\python.exe -m pytest
 ```
 
-The test suite uses a separate in-memory SQLite database with FastAPI dependency overrides, so tests do not write into the main `todo.db` file.[web:767][web:618]
-
-## Example workflow
-
-1. Start the server.
-2. Open `http://127.0.0.1:8000/docs`.
-3. Create a todo item with `POST /todos`.
-4. Verify it appears in `GET /todos`.
-5. Mark it as completed via `PUT /todos/{id}`.
-6. Verify filters with `GET /todos?is_done=true` and `GET /todos?is_done=false`.
-
-## Git workflow
-
-This project follows a feature-branch workflow.
-
-Example:
-
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/todo-validation-filter
-```
-
-After implementation and testing:
-
-```bash
-git add main.py test_main.py README.md
-git commit -m "feat: add todo validation and status filter"
-git push -u origin feature/todo-validation-filter
-```
-
-Then open a Pull Request from `feature/todo-validation-filter` into `develop`.
-
 ## Notes
 
-- Make sure dependencies are installed inside the local virtual environment.
-- Avoid generating `requirements.txt` from a global Python installation.
-- The main application uses `todo.db`, while tests use a separate in-memory SQLite database.
+- If you change the SQLite schema during development, you may need to delete `todo.db` and let the app recreate it.
+- Test cases use a separate in-memory SQLite database.
+- This project is intended as a beginner-friendly backend portfolio project.
