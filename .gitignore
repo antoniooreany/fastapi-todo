@@ -5,3 +5,7 @@ __pycache__/
 .env
 .idea/
 .vscode/
+
+.todo.db
+todo.db
+.pytest_cache/
