@@ -1,4 +1,6 @@
 import pytest
+from datetime import date
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -84,7 +86,7 @@ def test_create_todo():
     assert data["due_date"] == payload["due_date"]
 
 
-def test_get_todos():
+def test_get_todos_without_filter():
     created = create_sample_todo(
         title="Learn FastAPI",
         description="Build CRUD API",
@@ -99,6 +101,33 @@ def test_get_todos():
     assert isinstance(data, list)
     assert len(data) == 1
     assert data[0]["id"] == created["id"]
+
+
+def test_get_todos_with_is_done_filter():
+    create_sample_todo(
+        title="Done task",
+        description="Completed",
+        is_done=True,
+        due_date=None,
+    )
+    create_sample_todo(
+        title="Pending task",
+        description="Not completed yet",
+        is_done=False,
+        due_date=None,
+    )
+
+    response_done = client.get("/todos?is_done=true")
+    response_pending = client.get("/todos?is_done=false")
+
+    assert response_done.status_code == 200
+    assert response_pending.status_code == 200
+
+    data_done = response_done.json()
+    data_pending = response_pending.json()
+
+    assert all(todo["is_done"] is True for todo in data_done)
+    assert all(todo["is_done"] is False for todo in data_pending)
 
 
 def test_get_todo_by_id():
@@ -188,3 +217,36 @@ def test_delete_todo_not_found():
     response = client.delete("/todos/999")
     assert response.status_code == 404
     assert response.json() == {"detail": "Todo not found"}
+
+
+def test_validation_title_required():
+    payload = {
+        "description": "Missing title",
+        "is_done": False,
+        "due_date": None,
+    }
+    response = client.post("/todos", json=payload)
+    assert response.status_code == 422
+
+
+def test_validation_description_max_length():
+    long_description = "x" * 400
+    payload = {
+        "title": "Too long description",
+        "description": long_description,
+        "is_done": False,
+        "due_date": None,
+    }
+    response = client.post("/todos", json=payload)
+    assert response.status_code == 422
+
+
+def test_validation_due_date_format():
+    payload = {
+        "title": "Bad date format",
+        "description": "Invalid due date",
+        "is_done": False,
+        "due_date": "20-07-2026",
+    }
+    response = client.post("/todos", json=payload)
+    assert response.status_code == 422

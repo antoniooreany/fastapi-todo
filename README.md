@@ -5,6 +5,7 @@ A simple Todo API built with FastAPI and persistent task storage using SQLite an
 ## Features
 
 - Create, read, update, and delete todo items.
+- Filter todos by completion status (`GET /todos?is_done=true/false`).
 - Automatic interactive API documentation with Swagger UI.
 - Persistent storage with SQLite.
 - Automated API tests with an isolated test database.
@@ -85,11 +86,28 @@ If the database or tables do not exist yet, they are created automatically when 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Health-check style root endpoint |
-| GET | `/todos` | Return all todo items |
+| GET | `/todos` | Return all todo items, optionally filtered by `is_done` |
 | GET | `/todos/{id}` | Return a single todo item by ID |
 | POST | `/todos` | Create a new todo item |
 | PUT | `/todos/{id}` | Update an existing todo item |
 | DELETE | `/todos/{id}` | Delete a todo item |
+
+### Query parameters
+
+- `GET /todos?is_done=true` — returns only completed todos.
+- `GET /todos?is_done=false` — returns only pending todos.
+- `GET /todos` — without `is_done` returns all todos.[web:828][web:831]
+
+## Data validation
+
+Request body for creating and updating todos is validated using Pydantic and FastAPI:
+
+- `title` is required, 1–100 characters.
+- `description` is optional, up to 300 characters.
+- `is_done` is a boolean.
+- `due_date` is an optional date in `YYYY-MM-DD` format.[web:826][web:835]
+
+Invalid data returns a `422 Unprocessable Entity` response with details.[web:814]
 
 ## Running tests
 
@@ -99,7 +117,7 @@ Run tests with:
 .\venv\Scripts\python.exe -m pytest
 ```
 
-The test suite uses a separate in-memory SQLite database with FastAPI dependency overrides, so tests do not write into the main `todo.db` file.
+The test suite uses a separate in-memory SQLite database with FastAPI dependency overrides, so tests do not write into the main `todo.db` file.[web:767][web:618]
 
 ## Example workflow
 
@@ -107,7 +125,8 @@ The test suite uses a separate in-memory SQLite database with FastAPI dependency
 2. Open `http://127.0.0.1:8000/docs`.
 3. Create a todo item with `POST /todos`.
 4. Verify it appears in `GET /todos`.
-5. Restart the server and confirm the data is still stored.
+5. Mark it as completed via `PUT /todos/{id}`.
+6. Verify filters with `GET /todos?is_done=true` and `GET /todos?is_done=false`.
 
 ## Git workflow
 
@@ -118,18 +137,18 @@ Example:
 ```bash
 git checkout develop
 git pull origin develop
-git checkout -b feature/test-database
+git checkout -b feature/todo-validation-filter
 ```
 
 After implementation and testing:
 
 ```bash
-git add test_main.py README.md
-git commit -m "test: isolate database tests with in-memory SQLite"
-git push -u origin feature/test-database
+git add main.py test_main.py README.md
+git commit -m "feat: add todo validation and status filter"
+git push -u origin feature/todo-validation-filter
 ```
 
-Then open a Pull Request from `feature/test-database` into `develop`.
+Then open a Pull Request from `feature/todo-validation-filter` into `develop`.
 
 ## Notes
 

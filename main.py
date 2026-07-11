@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel, ConfigDict
+from datetime import date
+
+from fastapi import FastAPI, HTTPException, Depends, Query
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
-from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, Date
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
+
 
 app = FastAPI()
 
@@ -11,7 +14,7 @@ DATABASE_URL = "sqlite:///./todo.db"
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,20 +25,35 @@ class TodoDB(Base):
     __tablename__ = "todos"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    is_done = Column(Boolean, default=False)
-    due_date = Column(String, nullable=True)
+    title = Column(String(100), nullable=False)
+    description = Column(String(300), nullable=True)
+    is_done = Column(Boolean, default=False, index=True)
+    due_date = Column(Date, nullable=True)
 
 
 Base.metadata.create_all(bind=engine)
 
 
 class TodoBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    is_done: bool = False
-    due_date: Optional[str] = None
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Short title for the todo item (1-100 characters).",
+    )
+    description: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        description="Optional description (up to 300 characters).",
+    )
+    is_done: bool = Field(
+        default=False,
+        description="Completion status of the todo item.",
+    )
+    due_date: Optional[date] = Field(
+        default=None,
+        description="Optional due date for the todo item (YYYY-MM-DD).",
+    )
 
 
 class TodoCreate(TodoBase):
@@ -62,8 +80,19 @@ def read_root():
 
 
 @app.get("/todos", response_model=list[TodoRead])
-def get_todos(db: Session = Depends(get_db)):
-    todos = db.query(TodoDB).all()
+def get_todos(
+    is_done: Optional[bool] = Query(
+        default=None,
+        description="Optional filter by completion status. If omitted, returns all todos.",
+    ),
+    db: Session = Depends(get_db),
+):
+    query = db.query(TodoDB)
+
+    if is_done is not None:
+        query = query.filter(TodoDB.is_done == is_done)
+
+    todos = query.all()
     return todos
 
 
