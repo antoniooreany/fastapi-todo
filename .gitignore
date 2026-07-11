@@ -1,11 +1,9 @@
 venv/
-.venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.todo.db
+todo.db
 .env
 .idea/
 .vscode/
-
-.todo.db
-todo.db
-.pytest_cache/
